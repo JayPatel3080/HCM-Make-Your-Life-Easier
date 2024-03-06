@@ -3,7 +3,7 @@
 @section('content')
 
 <div class="content-wrapper mt-0">
-    <!-- Content Header (Page header) -->
+
     <div class="content-header">
       <div class="container-fluid">
         <div class="row mb-2">
