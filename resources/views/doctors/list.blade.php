@@ -52,7 +52,7 @@
                         <tr>
                             <td>{{$item->id}}</td>
                             <td>{{$item->name}}</td>
-                            <td>{{$item->getDoctor->doctorSpeciality->name ?? ''}}</td>
+                            <td>{{$item->getDoctor->doctorSpecility->name ?? ''}}</td>
                             <td>{{$item->email}}</td>
                             <td>{{$item->getDoctor->experience ?? ''}}</td>
                             <td>{{$item->role}}</td>
