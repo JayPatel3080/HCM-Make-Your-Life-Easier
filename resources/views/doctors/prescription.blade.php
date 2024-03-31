@@ -45,7 +45,7 @@
                     <input
                       type="text"
                       class="form-control"
-                      value="Demo Test"
+                      value="{{$user->patient_first_name .' ' . $user->patient_last_name}}"
                       readonly
                     />
                   </div>
@@ -55,17 +55,17 @@
                     <input
                       type="text"
                       class="form-control"
-                      value="Male"
+                      value="{{$user->patient_gender}}"
                       readonly
                     />
                   </div>
 
                   <div class="col-3">
-                    <label>Loction</label>
+                    <label>Appoinment Date</label>
                     <input
                       type="text"
                       class="form-control"
-                      value="Canada"
+                      value="{{$user->appointment_date}}"
                       readonly
                     />
                   </div>
@@ -75,18 +75,18 @@
                     <input
                       type="text"
                       class="form-control"
-                      value="CAN-012ABC"
+                      value="{{'CAN-'.$user->id}}"
                       readonly
                     />
                   </div>
                 </div>
                 <div class="row pt-3">
                   <div class="col-3">
-                    <label>Date of Birth</label>
+                    <label>Email</label>
                     <input
                       type="text"
                       class="form-control"
-                      value="29-02-2024"
+                      value="{{$user->patient_email}}"
                       readonly
                     />
                   </div>
@@ -96,17 +96,17 @@
                     <input
                       type="text"
                       class="form-control"
-                      value="56"
+                      value="{{$user->patient_age}}"
                       readonly
                     />
                   </div>
 
                   <div class="col-3">
-                    <label>Nationality</label>
+                    <label>Status</label>
                     <input
                       type="text"
                       class="form-control"
-                      value="Indian"
+                      value="{{$user->status}}"
                       readonly
                     />
                   </div>
@@ -116,9 +116,17 @@
                     <input
                       type="text"
                       class="form-control"
-                      value="45448565"
+                      value="{{$user->patient_phone_number}}"
                       readonly
                     />
+                  </div>
+                </div>
+                <div class="row pt-3">
+                  <div class="col-12 text-right">
+                    <form action="{{ route('prescription.export.pdf', ['id' => $patient_id]) }}" method="GET">
+
+                        <button class="btn btn-outline-info">Expoort PDF</button>
+                    </form>
                   </div>
                 </div>
               </div>
@@ -127,12 +135,47 @@
             <!-- /.card -->
           </div>
           <!-- Patient information end  -->
-
-          <!-- static summry start -->
+          @if (Auth::user()->role == "doctor" )
           <div class="col-12">
             <div class="card card-secondary">
               <div class="card-header">
-                <h3 class="card-title">Clinical Summary - (22-02-2024)</h3>
+                <h3 class="card-title">Clinical Summary - {{ $todayDate }}</h3>
+
+                <div class="card-tools">
+                  <button
+                    type="button"
+                    class="btn btn-tool"
+                    data-card-widget="collapse"
+                    title="Collapse"
+                  >
+                    <i class="fas fa-minus"></i>
+                  </button>
+                </div>
+              </div>
+              <form action="{{route('savePresciption')}}" method="POST">
+                @csrf
+                <input type="hidden" name="patient_id" id="patient_id" value="{{$patient_id}}">
+
+                <div class="card-body p-0">
+                  <textarea name="medication_name" id="summernote"></textarea>
+                </div>
+                <div class="ml-2 mb-2">
+                  <button class="btn btn-primary" type="submit">Save</button>
+
+                </div>
+                </form>
+              <!-- /.card-body -->
+            </div>
+            <!-- /.card -->
+          </div>
+          @endif
+          
+          <!-- static summry start -->
+          @foreach ($list as $item)
+            <div class="col-12">
+            <div class="card card-secondary">
+              <div class="card-header">
+                <h3 class="card-title">Clinical Summary - {{$item->PrescriptionDate}}</h3>
 
                 <div class="card-tools">
                   <button
@@ -146,41 +189,19 @@
                 </div>
               </div>
               <div class="card-body">
-                Lorem ipsum dolor sit, amet consectetur adipisicing elit.
-                Quas aspernatur amet neque facilis assumenda. Hic, esse
-                veritatis sit iusto magni, neque accusamus reprehenderit
-                odit voluptate maxime natus dicta eligendi modi.
+                {!!$item->medication_name!!}
               </div>
               <!-- /.card-body -->
             </div>
             <!-- /.card -->
           </div>
+          @endforeach
+          
+          
           <!-- static summry end -->
 
           <!-- clinical report starts -->
-          <div class="col-12">
-            <div class="card card-secondary">
-              <div class="card-header">
-                <h3 class="card-title">Clinical Summary - (22-02-2024)</h3>
-
-                <div class="card-tools">
-                  <button
-                    type="button"
-                    class="btn btn-tool"
-                    data-card-widget="collapse"
-                    title="Collapse"
-                  >
-                    <i class="fas fa-minus"></i>
-                  </button>
-                </div>
-              </div>
-              <div class="card-body p-0">
-                <textarea id="summernote"></textarea>
-              </div>
-              <!-- /.card-body -->
-            </div>
-            <!-- /.card -->
-          </div>
+          
 
           <!-- clinical report ends -->
         </div>
@@ -189,94 +210,7 @@
 
         <!-- Info boxes -->
 
-        <!-- Appointment form start -->
-        <!-- <div class="info-box d-block">
-          <div class="row">
-            <div class="col-4">
-              <input
-                type="text"
-                class="form-control"
-                placeholder="First Name"
-              />
-            </div>
-            <div class="col-4">
-              <input
-                type="text"
-                class="form-control"
-                placeholder="Middle Name"
-              />
-            </div>
-            <div class="col-4">
-              <input
-                type="text"
-                class="form-control"
-                placeholder="Last Name"
-              />
-            </div>
-          </div>
-          <div class="row" style="margin-top: 20px">
-            <div class="col-4">
-              <input type="text" class="form-control" placeholder="Phone" />
-            </div>
-            <div class="col-4">
-              <input
-                type="date"
-                class="form-control"
-                placeholder="Date Of Birth"
-              />
-            </div>
-            <div class="col-4">
-              <select
-                class="select2bs4"
-                data-placeholder="Gender"
-                style="width: 100%; height: 100%"
-              >
-                <option>Select Gender</option>
-                <option>Male</option>
-                <option>Female</option>
-                <option>Other</option>
-              </select>
-            </div>
-          </div>
-
-          <div class="row" style="margin-top: 20px">
-            <div class="col-6">
-              <input
-                type="text"
-                class="form-control"
-                placeholder="Address"
-              />
-            </div>
-
-            <div class="col-6">
-              <input type="text" class="form-control" placeholder="Email" />
-            </div>
-          </div>
-
-          <div class="row" style="margin-top: 20px">
-            <div class="col-6">
-              <input
-                type="Date"
-                class="form-control"
-                placeholder="Appointment Date"
-              />
-            </div>
-
-            <div class="col-6">
-              <select
-                class="select2bs4"
-                data-placeholder="Gender"
-                style="width: 100%; height: 100%"
-              >
-                <option>Appointment time slot</option>
-                <option>9am to 10am</option>
-              </select>
-            </div>
-          </div>
-        </div>
-        <button type="button" class="btn btn-block bg-gradient-secondary">
-          Save
-        </button> -->
+       
         <!-- Appointment form end -->
       </div>
 

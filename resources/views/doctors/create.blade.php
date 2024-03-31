@@ -61,7 +61,7 @@
                 
                 <div class="row" style="margin-top: 20px">
                   <div class="col-6">
-                    <input type="number" name="exper" class="form-control @error('exper') is-invalid @enderror" placeholder="Doctor Exprience">
+                    <input type="number" name="exper" class="form-control @error('exper') is-invalid @enderror" placeholder="Doctor Experriencs">
 
                     @error('exper')
                           <span class="invalid-feedback" role="alert">
@@ -92,7 +92,7 @@
                     </div>
         
                     <div class="col-6">
-                      <input id="password-confirm" type="password" placeholder="Confirm Password" class="form-control" name="password_confirmation" required autocomplete="new-password">
+                      <input id="password-confirm" type="password" placeholder="Conform Password" class="form-control" name="password_confirmation" required autocomplete="new-password">
                     </div>
                 </div>
             <div class=" mt-2">

@@ -53,6 +53,10 @@
                       <th>Doctor Specialty</th>
                       <th>Appointment Date</th>
                       <th>Appointment Time Slot</th>
+                      @if (Auth::user()->role == "super_admin" || Auth::user()->role == "patient")
+
+                      <th>Action</th>
+                      @endif
                     </tr>
                   </thead>
                   <tbody>
@@ -60,7 +64,7 @@
                       <tr>
                         <td>{{ $appointment['id'] }}</td>
                         @if ($appointment->status == "Pendding" && Auth::user()->role == "staff")
-                        <td><span type="button" onclick="openModal('{{ $appointment['patient_first_name'] }} {{ $appointment['patient_last_name'] }}' , '{{ $appointment->doctorSpecialty->name}}' ,'{{ $appointment->doctor_specialty_id}}','{{ $appointment->id}}')" data-toggle="modal" data-target="#modal-secondary" class="badge badge-warning" style="cursor: pointer;"> {{ $appointment['status'] }}</span> </td>
+                        <td><span type="button" onclick="openModal('{{ $appointment['patient_first_name'] }} {{ $appointment['patient_last_name'] }}' , '{{ $appointment->doctorSpecialty->name}}' ,'{{ $appointment->doctor_specialty_id}}','{{ $appointment->id}}','{{$appointment->appointment_time_slot}}')" data-toggle="modal" data-target="#modal-secondary" class="badge badge-warning" style="cursor: pointer;"> {{ $appointment['status'] }}</span> </td>
                         @elseif ($appointment->status == "Pendding" )
                         
                         <td><span class="badge badge-warning">{{$appointment->status}}</span></td>  
@@ -70,11 +74,10 @@
 
                         @elseif($appointment->status = "Reject")
                         <td><span class="badge badge-danger">{{$appointment->status}}</span></td>  
-
                         @endif
-                        @if (Auth::user()->role == "doctor")
+                        @if (Auth::user()->role == "doctor" || Auth::user()->role == "patient")
                         
-                          <td><a href="{{route('appoinment.patient.prescription')}}">{{ $appointment['patient_first_name'] }} {{ $appointment['patient_last_name'] }}</a></td>
+                          <td><a href="{{route('appoinment.patient.prescription',['id' => $appointment->user_id])}}">{{ $appointment['patient_first_name'] }} {{ $appointment['patient_last_name'] }}</a></td>
 
                         @else
                             <td>{{ $appointment['patient_first_name'] }} {{ $appointment['patient_last_name'] }}</td>
@@ -90,6 +93,17 @@
                         <td>{{ $appointment->doctorSpecialty->name}}</td>
                         <td>{{ $appointment['appointment_date'] }}</td>
                         <td>{{ $appointment['appointment_time_slot'] }}</td>
+                        @if (Auth::user()->role == "super_admin" || Auth::user()->role == "patient")
+
+                          <td>
+                            <a href="{{ route('appoinment.edit', $appointment['id']) }}" class="btn btn-info">Edit</a>
+                            <form action="{{ route('appoinment.destroy', $appointment['id']) }}" method="POST" style="display: inline-block;">
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit" class="btn btn-danger">Delete</button>
+                            </form>
+                        </td>
+                      @endif
                       </tr>
                     @endforeach
                   </tbody>
@@ -118,8 +132,7 @@
             <div class="modal-body">
               <div class="row">
                 <div class="col-6">
-                  <input type="hidden" name="id" id="id">
-                  <Label style="margin-bottom: 0px;"> Name</Label> <br/>
+                    <Label style="margin-bottom: 0px;"> Name</Label> <br/>
                   <strong id="patientName"></strong>
                 </div>
                 <div class="col-6">
@@ -127,26 +140,47 @@
                   <strong id="doctorSpecialty"></strong>
                 </div> 
               </div>
-
+              <form action="{{route('change.appoinment.status')}}" method="get">
+                <input type="hidden" name="appoinmentId" id="appoinmentId">
               <div class="row" style="margin-top:20px;">
                 <div class="col-6"> 
-                  <select name="status" class="select2bs4 form-control" data-placeholder="Gender" style="width: 100%; height: 100%">
+                  <select id="status" name="status" class="select2bs4 form-control" data-placeholder="Gender" style="width: 100%; height: 100%">
                     <option value="Pendding">Pendding</option>
                     <option value="Approved">Approved</option>
                     <option value="Reject">Reject</option>
                   </select>
                 </div>
-                <div class="col-6">   
-                  <select name="doctorDropdown" id="doctorDropdown" class="select2bs4 form-control" data-placeholder="Gender" style="width: 100%; height: 100%">
+                <div class="col-6" >   
+                  <select disabled name="doctorDropdown" id="doctorDropdown" class="select2bs4 form-control" data-placeholder="Gender" style="width: 100%; height: 100%">
                     <option value="">Select Doctor</option>
                   </select>
                 </div>
-              </div>          
+              </div>   
+              <div class="row" style="margin-top:20px;">
+                <div class="col-6">
+                  <strong id="timeSlote"></strong>
+                </div>
+                <div class="col-6">
+                  <select name="appointment_time_slot" class="select2bs4 form-control" data-placeholder="Gender" style="width: 100%; height: 100%;;">
+                    <option value="">time slot</option>
+                    @php
+                        $startTime = strtotime('9:00 AM');
+                        $endTime = strtotime('5:00 PM');
+                        $interval = 15 * 60; // 15 minutes in seconds
+
+                        for ($time = $startTime; $time < $endTime; $time += $interval) {
+                            $timeSlot = date('g:i A', $time);
+                            echo "<option value=\"$timeSlot\">$timeSlot</option>";
+                        }
+                    @endphp
+                </select></div>  
+              </div>       
             </div>
             <div class="modal-footer justify-content-end">
-              <button type="button" class="btn btn-outline-light" data-id="{{ $appointment->id ?? null }}">Save changes</button>
+              <button type="submit" class="btn btn-outline-light" data-id="{{ $appointment->id ?? null }}">Save changes</button>
             </div>
           </div>
+        </form>
           <!-- /.modal-content -->
         </div>
         <!-- /.modal-dialog -->
@@ -161,32 +195,22 @@
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
 
 <script>
-$(function() {
-      $('#modal-secondary').on('click', '.btn-outline-light', function() {
-        var status = $('select[name="status"]').val();
-        var doctor_id = $('#doctorDropdown').val();
-        var id = $(this).data('id'); 
+document.getElementById('status').addEventListener('change', function() {
+        var status = this.value;
+        var doctorDropdown = document.getElementById('doctorDropdown');
 
-        $.ajax({
-          type: "GET",
-          url: "/change/appoinment-status", 
-          data: {
-            status: status,
-            id:id,
-            doctor_id: doctor_id
-          },
-          success: function(response) {
-            location.reload();
-          },
-          error: function(xhr, status, error) {
-            console.error('Error saving changes:', error);
-          }
-        });
-      });
+        if (status === 'Approved') {
+            doctorDropdown.removeAttribute('disabled');
+        } else {
+            doctorDropdown.setAttribute('disabled', 'disabled');
+        }
     });
-      function openModal(patientName,doctor,doctor_spe_id,id) {
+      function openModal(patientName,doctor,doctor_spe_id,id,appointment_time_slot) {
         var dropdown = document.getElementById('doctorDropdown');
-
+        var selectedTimeSlot = "Time Slot is:" + appointment_time_slot;
+        var hiddenInput = document.getElementById('appoinmentId');
+        // Set the value of the hidden input field with the appointment ID
+        hiddenInput.value = id;
         dropdown.innerHTML = '';
 
         $.ajax({
@@ -197,13 +221,13 @@ $(function() {
             
             $('#patientName').text(patientName);
             $('#doctorSpecialty').text(doctor);
-            $('#appointmentId').val(id);
            
+            $('#timeSlote').text(selectedTimeSlot)
+
             var option = document.createElement('option');
               option.text = 'Select Doctor';
               option.value = '';
               dropdown.add(option);
-
             response.forEach(function(doctor) {
               var option = document.createElement('option');
               option.text = doctor.name;
