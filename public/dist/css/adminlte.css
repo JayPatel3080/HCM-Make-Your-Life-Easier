@@ -11008,7 +11008,7 @@ body:not(.layout-fixed).layout-navbar-fixed.text-sm .wrapper .main-sidebar .side
 }
 
 .layout-navbar-fixed .wrapper .content-wrapper {
-  /* margin-top: calc(3.5rem + 1px); */
+  margin-top: calc(3.5rem + 1px);
 }
 
 .layout-navbar-fixed .wrapper .main-header.text-sm ~ .content-wrapper {
@@ -11105,7 +11105,7 @@ body:not(.layout-fixed).layout-navbar-fixed.text-sm .wrapper .main-sidebar .side
 }
 
 .layout-navbar-fixed .wrapper .content-wrapper {
-  /* margin-top: calc(3.5rem + 1px); */
+  margin-top: calc(3.5rem + 1px);
 }
 
 .text-sm .layout-navbar-fixed .wrapper .main-header ~ .content-wrapper,
@@ -34969,6 +34969,34 @@ a.close.disabled, a.disabled.mailbox-attachment-close {
   color: #495057;
 }
 
+.background-image {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: url('/dist/img/pm-back-2.jpg');
+  background-size: cover;
+}
+.background-image-register {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: url('/dist/img/pm-back-3.jpg');
+  background-size: cover;
+}
+
+.login-box {
+  position: absolute;
+  right: 50px; /* Adjust this value according to your layout */
+  top: 50%; /* Align vertically */
+  transform: translateY(-50%);
+  width: 320px; /* Adjust the width as needed */
+}
+
+
 .login-page,
 .register-page {
   -ms-flex-align: center;
@@ -53010,4 +53038,3 @@ a.text-muted:hover {
   border-color: #4b545c !important;
 }
 /*# sourceMappingURL=adminlte.css.map */
-

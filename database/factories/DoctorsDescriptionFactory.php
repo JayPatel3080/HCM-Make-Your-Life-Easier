@@ -21,7 +21,7 @@ class DoctorsDescriptionFactory extends Factory
      */
     public function definition(): array
     {
-        $userIds = User::where('role', 'doctor')->pluck('id')->toArray();
+        $userIds = User::pluck('id')->toArray();
         $specialtyIds = DoctorSpecialty::pluck('id')->toArray();
 
         return [
