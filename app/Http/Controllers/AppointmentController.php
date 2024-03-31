@@ -4,11 +4,18 @@ namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\AppointmentRequest;
+use App\Mail\AppointmentCreatedNotification;
+use App\Mail\AppointmentStatusChangeNotification;
+use App\Mail\AppointmentStatusUpdated;
 use App\Models\Appointments;
 use App\Models\DoctorSpecialty;
+use App\Models\Prescriptions;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Mail;
+use PDF;
 
 class AppointmentController extends Controller
 {
@@ -61,6 +68,10 @@ class AppointmentController extends Controller
         $appointment->user_id = Auth::id();
         $appointment->save();
 
+        $staffUser = User::where('role', 'staff')->first();
+        if ($staffUser) {
+            Mail::to($staffUser->email)->send(new AppointmentCreatedNotification($appointment));
+        }
         return redirect()->route('appoinment.index')->with('success', 'Appointment created successfully!');
     }
 
@@ -75,25 +86,57 @@ class AppointmentController extends Controller
     /**
      * Show the form for editing the specified resource.
      */
-    public function edit(string $id)
+    public function edit(Appointments $appoinment)
     {
-        //
+        $doctorSpecialties  = DoctorSpecialty::all();
+
+        return view('appoinments.edit', compact('appoinment', 'doctorSpecialties'));
     }
 
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, string $id)
+    public function update(Request $request, Appointments $appoinment)
     {
-        //
+        $validatedData = $request->validate([
+            'patient_first_name' => 'required|string|max:255',
+            'patient_last_name' => 'required|string|max:255',
+            'patient_email' => 'required|email|max:255',
+            'patient_phone_number' => 'required|string|max:255',
+            'patient_age' => 'required|integer|min:0',
+            'patient_gender' => 'required|string|in:Male,Female,Other',
+            'patient_medical_history' => 'nullable|string',
+            'patient_address' => 'required|string|max:255',
+            'doctor_specialty' => 'required',
+            'appointment_date' => 'required|date',
+            'appointment_time_slot' => 'required|string|max:255',
+        ]);
+
+        $appoinment->update([
+            'patient_first_name' => $validatedData['patient_first_name'],
+            'patient_last_name' => $validatedData['patient_last_name'],
+            'patient_email' => $validatedData['patient_email'],
+            'patient_phone_number' => $validatedData['patient_phone_number'],
+            'patient_age' => $validatedData['patient_age'],
+            'patient_gender' => $validatedData['patient_gender'],
+            'patient_medical_history' => $validatedData['patient_medical_history'],
+            'patient_address' => $validatedData['patient_address'],
+            'doctor_specialty_id' => $validatedData['doctor_specialty'],
+            'appointment_date' => $validatedData['appointment_date'],
+            'appointment_time_slot' => $validatedData['appointment_time_slot'],
+        ]);
+
+        return redirect()->route('appoinment.index')->with('success', 'Appointment deleted successfully.');
     }
 
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(string $id)
+    public function destroy(Appointments $appoinment)
     {
-        //
+        $appoinment->delete();
+
+        return redirect()->route('appoinment.index')->with('success', 'Appointment deleted successfully.');
     }
 
     public function getDoctorList(Request $request)
@@ -105,17 +148,58 @@ class AppointmentController extends Controller
         return $doctorList;
     }
 
-    public function chnageAppoinmentStatus(Request $request)
+    public function changeAppointmentStatus(Request $request)
     {
-
-        $appoinment = Appointments::where('id', $request->id)->first();
-        $appoinment->doctor_id = $request->doctor_id;
+        $appoinment = Appointments::where('id', $request->appoinmentId)->first();
+        if (!empty($request->appointment_time_slot)) {
+            $appoinment->appointment_time_slot = $request->appointment_time_slot;
+        }
+        $appoinment->doctor_id = $request->doctorDropdown;
         $appoinment->status = $request->status;
         $appoinment->save();
+        $doctor = $appoinment->doctor;
+        if ($doctor) {
+            Mail::to($doctor->email)->send(new AppointmentStatusUpdated($appoinment, $doctor));
+        }
+        $user = $appoinment->user;
+        if ($user) {
+            Mail::to($user->email)->send(new AppointmentStatusChangeNotification($appoinment, $user));
+        }
+        return redirect()->route('appoinment.index')->with('success', 'Appointment Status Change successfully!');
     }
 
-    public function showPrescription()
+    public function showPrescription(Request $req)
     {
-        return view('doctors.prescription');
+        $patient_id = $req->route()->parameter('id');
+        $todayDate = Carbon::now()->format('d-m-Y');
+        $list = Prescriptions::where('patient_id', $patient_id)->orderBy('id', 'desc')->get();
+        $user = Appointments::where('user_id', $patient_id)->first();
+
+        return view('doctors.prescription', compact('patient_id', 'todayDate', 'list', 'user'));
+    }
+
+    public function savePresciption(Request $request)
+    {
+        $prescription = new Prescriptions();
+        $prescription->doctor_id = Auth::id();
+        $prescription->patient_id = $request->patient_id;
+        $prescription->medication_name = $request->medication_name;
+        $prescription->PrescriptionDate = Carbon::now();
+
+        $prescription->save();
+        return redirect()->back();
+    }
+    public function exportPrescriptionPDF($id)
+    {
+
+        // Example prescription content (replace this with your actual content)
+        $todayDate = Carbon::now()->format('d-m-Y');
+        $list = Prescriptions::where('patient_id', $id)->orderBy('id', 'desc')->get();
+        $user = Appointments::where('user_id', $id)->first();
+        // Render the view into a PDF
+        $pdf = PDF::loadView('export.export', compact('todayDate', 'list', 'user',));
+
+        // Download the PDF file
+        return $pdf->download('prescription.pdf');;
     }
 }
