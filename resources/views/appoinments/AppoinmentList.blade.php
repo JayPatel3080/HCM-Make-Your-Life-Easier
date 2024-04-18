@@ -44,6 +44,7 @@
                       <th>Status</th>
                       <th>Patient Name</th>
                       <th>Doctor Name</th>
+                      <th>Payment Status</th>
                       <th>Email</th>
                       <th>Phone Number</th>
                       <th>Age</th>
@@ -77,13 +78,32 @@
                         @endif
                         @if (Auth::user()->role == "doctor" || Auth::user()->role == "patient")
                         
-                          <td><a href="{{route('appoinment.patient.prescription',['id' => $appointment->user_id])}}">{{ $appointment['patient_first_name'] }} {{ $appointment['patient_last_name'] }}</a></td>
+                          <td><a href="{{route('appoinment.patient.prescription',['id' => $appointment->id])}}">{{ $appointment['patient_first_name'] }} {{ $appointment['patient_last_name'] }}</a></td>
 
                         @else
                             <td>{{ $appointment['patient_first_name'] }} {{ $appointment['patient_last_name'] }}</td>
                         @endif
   
                         <td>{{$appointment->doctor->name ?? ''}}</td>
+                        @if ($appointment->payment_status == "Pending" && Auth::user()->role == "patient" && $appointment->status == "Approved")
+
+                          @php
+                              $appointmentDateTime = $appointment->appointment_date . ' ' . $appointment->appointment_time_slot;
+                              $currentDateTime = now()->format('Y-m-d H:i:s');
+                          @endphp
+                    
+                        @if (strtotime($appointmentDateTime) < strtotime($currentDateTime))
+                            <td><a class="badge badge-warning" href="{{ route('appointment.payment', ['id' => $appointment->id]) }}" class="btn btn-primary">{{ $appointment->payment_status }}</a></td>
+                        @else
+                            <td><span class="badge badge-danger">Appointment not passed</span></td>
+                        @endif
+                    
+                    @elseif ($appointment->payment_status == "Paid")
+                        <td><span class="badge badge-success">{{ $appointment->payment_status }}</span></td>
+                    @else
+                        <td><span class="badge badge-danger">{{ $appointment->payment_status }}</span></td>
+                    @endif
+                    
                         <td>{{ $appointment['patient_email'] }}</td>
                         <td>{{ $appointment['patient_phone_number'] }}</td>
                         <td>{{ $appointment['patient_age'] }}</td>
@@ -108,6 +128,7 @@
                     @endforeach
                   </tbody>
                 </table>
+                {{ $appoinment->links() }}
               </div>
 
               </div>
@@ -195,7 +216,7 @@
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
 
 <script>
-document.getElementById('status').addEventListener('change', function() {
+      document.getElementById('status').addEventListener('change', function() {
         var status = this.value;
         var doctorDropdown = document.getElementById('doctorDropdown');
 
@@ -242,20 +263,34 @@ document.getElementById('status').addEventListener('change', function() {
     });
     
   }
-  $(function () {
-    $("#example1").DataTable({
-      "responsive": true, "lengthChange": false, "autoWidth": false,
-      "buttons": ["copy", "csv", "excel", "pdf", "print", "colvis"]
-    }).buttons().container().appendTo('#example1_wrapper .col-md-6:eq(0)');
-    $('#example2').DataTable({
-      "paging": true,
-      "lengthChange": false,
-      "searching": false,
-      "ordering": true,
-      "info": true,
-      "autoWidth": false,
-      "responsive": true,
+ 
+  $(document).ready(function() {
+        $('#example1').DataTable({
+        "paging": false, // Disable default pagination
     });
-  });
+
+    });
 </script>
+<!-- DataTables CSS -->
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.24/css/jquery.dataTables.css">
+
+<!-- jQuery -->
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+
+<!-- DataTables JS -->
+<script type="text/javascript" charset="utf8" src="https://cdn.datatables.net/1.10.24/js/jquery.dataTables.js"></script>
+
+{{-- <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.11.5/css/jquery.dataTables.min.css"> --}}
+<style>
+  #example1 tbody tr {
+    background-color:#454d55 ; /* Set your desired background color */
+}
+#example1_filter label {
+    color: #fff; /* Set label color to white */
+}
+/* Optional: Hover effect */
+#example1 tbody tr:hover {
+    background-color: #454d55  /* Set your desired hover background color */
+}
+</style>
 @endsection

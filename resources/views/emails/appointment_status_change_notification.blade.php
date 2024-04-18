@@ -7,7 +7,7 @@
     <title>Appointment Status Change Notification</title>
 </head>
 <body>
-    <h2>Dear {{ $user->name }},</h2>
+    <h2>Dear {{ $appointment->patient_first_name }} {{$appointment->patient_last_name}},</h2>
     <p>Your appointment status has been updated:</p>
     <p>Appointment ID: {{ $appointment->id }}</p>
     <p>Status: {{ $appointment->status }}</p>

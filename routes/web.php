@@ -30,7 +30,7 @@ Route::get('/doctor', function () {
 });
 Route::get('/patient', function () {
     return view('dashboards.patient');
-});
+})->name('dashboards.patient');
 Route::get('/staf', function () {
     return view('dashboards.staf');
 });
@@ -54,4 +54,8 @@ Route::middleware(['auth'])->group(function () {
     Route::resource('tasks', TaskController::class);
     Route::put('/tasks/{task}/update-status', [TaskController::class, 'updateStatus'])->name('tasks.update.status');
     Route::get('/tasks/{task}/change-status', [TaskController::class, 'chnageStatus'])->name('tasks.changeStatus');
+    Route::get('/appointment/{id}/payment', [AppointmentController::class, 'showPaymentPage'])->name('appointment.payment');
+    Route::post('/appointment/complete/payment/{id}', [AppointmentController::class, 'completePayment'])->name('complete.payment');
+    Route::get('profile/update', [UserController::class, 'profileUpdate'])->name('profile-update');
+    Route::put('update/profile/{id}', [UserController::class, 'updateProfile'])->name('update-profile');
 });

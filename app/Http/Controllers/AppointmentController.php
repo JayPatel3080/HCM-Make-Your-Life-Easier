@@ -16,6 +16,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Mail;
 use PDF;
+use Stripe\Stripe;
+use Stripe\Charge;
 
 class AppointmentController extends Controller
 {
@@ -27,10 +29,10 @@ class AppointmentController extends Controller
         $role = Auth::user()->role;
 
         $appoinment = match ($role) {
-            "super_admin" =>  Appointments::all(),
-            "staff" =>  Appointments::all(),
-            "patient" => Appointments::where('user_id', Auth::id())->get(),
-            "doctor" =>  Appointments::where('doctor_id', Auth::id())->get(),
+            "super_admin" =>  Appointments::paginate(5),
+            "staff" =>  Appointments::paginate(5),
+            "patient" => Appointments::where('user_id', Auth::id())->paginate(5),
+            "doctor" =>  Appointments::where('doctor_id', Auth::id())->paginate(5),
         };
 
         return view('appoinments.AppoinmentList', compact('appoinment'));
@@ -163,7 +165,7 @@ class AppointmentController extends Controller
         }
         $user = $appoinment->user;
         if ($user) {
-            Mail::to($user->email)->send(new AppointmentStatusChangeNotification($appoinment, $user));
+            Mail::to($appoinment->patient_email)->send(new AppointmentStatusChangeNotification($appoinment, $user));
         }
         return redirect()->route('appoinment.index')->with('success', 'Appointment Status Change successfully!');
     }
@@ -173,7 +175,7 @@ class AppointmentController extends Controller
         $patient_id = $req->route()->parameter('id');
         $todayDate = Carbon::now()->format('d-m-Y');
         $list = Prescriptions::where('patient_id', $patient_id)->orderBy('id', 'desc')->get();
-        $user = Appointments::where('user_id', $patient_id)->first();
+        $user = Appointments::where('id', $patient_id)->first();
 
         return view('doctors.prescription', compact('patient_id', 'todayDate', 'list', 'user'));
     }
@@ -195,11 +197,100 @@ class AppointmentController extends Controller
         // Example prescription content (replace this with your actual content)
         $todayDate = Carbon::now()->format('d-m-Y');
         $list = Prescriptions::where('patient_id', $id)->orderBy('id', 'desc')->get();
-        $user = Appointments::where('user_id', $id)->first();
+        $user = Appointments::where('id', $id)->first();
         // Render the view into a PDF
         $pdf = PDF::loadView('export.export', compact('todayDate', 'list', 'user',));
 
         // Download the PDF file
         return $pdf->download('prescription.pdf');;
     }
+
+    public function showPaymentPage($id)
+    {
+        $appointment = Appointments::findOrFail($id);
+
+        Stripe::setApiKey(env('STRIPE_SECRET'));
+
+        $amount = 50 * 100;
+        $email = Auth::user()->email;
+
+
+        // Create a checkout session
+    $session = \Stripe\Checkout\Session::create([
+        'payment_method_types' => ['card'],
+        'line_items' => [[
+            'price_data' => [
+                'currency' => 'CAD',
+                'product_data' => [
+                    'name' => 'Your Product', // Name of your product
+                ],
+                'unit_amount' => $amount,
+            ],
+            'quantity' => 1,
+        ]],
+        'customer_email' => $email,
+        'mode' => 'payment',
+        'success_url' => route('dashboards.patient'), // Redirect URL after successful payment
+        'cancel_url' => route('dashboards.patient'), // Redirect URL if payment is canceled
+    ]);
+
+    // Save the checkout session ID if needed
+    // $appointment->checkout_session_id = $session->id;
+     $appointment->payment_status = "Paid";
+     $appointment->save();
+
+        
+        print($session->url);
+
+        return redirect()->to($session->url);
+
+        // return view('appoinments.payment', compact('appointment'));
+    }
+
+    public function completePayment(Request $request, $id)
+    {
+        Stripe::setApiKey(env('STRIPE_SECRET'));
+
+        $amount = 50 * 100;
+        $email = Auth::user()->email;
+
+        // Create a new Stripe customer.
+        $customer = \Stripe\Customer::create([
+            'email' => $email,
+            'source' => $request->input('stripeToken'),
+        ]);
+
+        
+
+//comment kar code
+
+        // Create a checkout session
+    $session = \Stripe\Checkout\Session::create([
+        'payment_method_types' => ['card'],
+        'line_items' => [[
+            'price_data' => [
+                'currency' => 'usd',
+                'product_data' => [
+                    'name' => 'Your Product', // Name of your product
+                ],
+                'unit_amount' => $amount,
+            ],
+            'quantity' => 1,
+        ]],
+        'customer_email' => $email,
+        'mode' => 'payment',
+        'success_url' => route('dashboards.patient'), // Redirect URL after successful payment
+        'cancel_url' => route('dashboards.patient'), // Redirect URL if payment is canceled
+    ]);
+
+    // Save the checkout session ID if needed
+    // $appointment = Appointments::findOrFail($id);
+    // $appointment->checkout_session_id = $session->id;
+    // $appointment->save();
+
+    print($session->url);
+
+    return redirect()->to($session->url);
+    }
 }
+//
